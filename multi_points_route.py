@@ -23,13 +23,16 @@
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon, QColor
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QMessageBox
 
 from qgis.core import QgsWkbTypes, QgsPointXY, QgsMessageLog
 from qgis.gui import QgsMapToolEmitPoint, QgsRubberBand
 
+from .web.routeservice import *
+
 # Initialize Qt resources from file resources.py
 from .resources import *
+
 # Import the code for the dialog
 from .multi_points_route_dialog import MultiPointsRouteDialog
 import os.path
@@ -66,10 +69,6 @@ class MultiPointsRoute:
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&Multiple Points Route')
-
-        # Check if plugin was started the first time in current QGIS session
-        # Must be set in initGui() to survive plugin reloads
-        self.first_start = None
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -171,10 +170,6 @@ class MultiPointsRoute:
             callback=self.run,
             parent=self.iface.mainWindow())
 
-        # will be set False in run()
-        self.first_start = True
-
-
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
@@ -183,48 +178,67 @@ class MultiPointsRoute:
                 action)
             self.iface.removeToolBarIcon(action)
 
-    def map_point_click(self, point: QgsPointXY):
-        self.middle_points.append(point)
-        self.point_rubber_band.addPoint(point)
-        self.line_rubber_band.addPoint(point)
-        QgsMessageLog.logMessage('New point added: ' + str(point), LOG_TAG)
+
+    def service_selected_change(self):
+        self.service = self.service_factory.service(self.dlg.combo_box_web_service.currentText())
+        self.dlg.combo_box_transport_mode.clear()
+        self.dlg.combo_box_transport_mode.addItems(self.service.modes())
+
 
     def select_points(self):
-        # activate click on map
         self.canvas.setMapTool(self.click_tool)
         self.dlg.showMinimized()
     
+
+    def map_point_click(self, p: QgsPointXY):
+        self.middle_points.append(p)
+        self.point_rubber_band.addPoint(p)
+        self.line_rubber_band.addPoint(p)
+
+
     def compute_route(self):
+        
+        # compute route between select points
+        QgsMessageLog.logMessage('Should now compute route between ' + str(len(self.middle_points)) + ' points', LOG_TAG)
+        features = self.service.compute_route(self.middle_points, self.dlg.combo_box_transport_mode.currentText())
+        QgsMessageLog.logMessage('Features: ' + str(features), LOG_TAG)
+
+        layer = self.iface.addVectorLayer("LineString?crs=EPSG:4326", "Route", "memory")
+        layer.startEditing()
+        layer.addFeatures(features)
+        layer.commitChanges()
+        layer.updateExtents()        
+
         # clear rubber bands
         self.point_rubber_band.reset()
         self.line_rubber_band.reset()
         self.canvas.unsetMapTool(self.click_tool)
-        
-        # compute route between select points
-        QgsMessageLog.logMessage('Should now compute route between ' + str(len(self.middle_points)) + ' points', LOG_TAG)
-        for point in self.middle_points:
-            QgsMessageLog.logMessage('Point ' + str(point.x()) + ' x ' + str(point.y()), LOG_TAG)
+
+    middle_points: [QgsPointXY]
+    service_factory: RouteServiceFactory
 
     def run(self):
         
-        # Create the dialog with elements (after translation) and keep reference
-        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start == True:
-            self.first_start = False
-            self.dlg = MultiPointsRouteDialog()
-
+        self.dlg = MultiPointsRouteDialog()
         self.middle_points = []
+        self.service_factory = RouteServiceFactory()
         self.canvas = self.iface.mapCanvas()
-        self.click_tool = QgsMapToolEmitPoint(self.canvas)
-        self.click_tool.canvasClicked.connect(self.map_point_click)
+
+        self.dlg.button_select_points.clicked.connect(self.select_points)
+        self.dlg.button_compute_route.clicked.connect(self.compute_route)
+
+        self.dlg.combo_box_web_service.clear()
+        self.dlg.combo_box_web_service.addItems(self.service_factory.available_services())
+        self.dlg.combo_box_web_service.currentIndexChanged.connect(self.service_selected_change)
+        self.service_selected_change()
 
         self.point_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
         self.point_rubber_band.setColor(QColor('#FF0000'))
         self.line_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
         self.line_rubber_band.setColor(QColor('#0000FF'))
 
-        self.dlg.button_select_points.clicked.connect(self.select_points)
-        self.dlg.button_compute_route.clicked.connect(self.compute_route)
-
+        self.click_tool = QgsMapToolEmitPoint(self.canvas)
+        self.click_tool.canvasClicked.connect(self.map_point_click)
+        
         # show the dialog
         self.dlg.show()

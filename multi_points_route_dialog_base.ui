@@ -6,41 +6,18 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>230</width>
-    <height>200</height>
+    <width>231</width>
+    <height>274</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Multiple Points Route</string>
   </property>
-  <widget class="QComboBox" name="combo_box_web_service">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>40</y>
-     <width>211</width>
-     <height>25</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_web_service">
-   <property name="geometry">
-    <rect>
-     <x>80</x>
-     <y>10</y>
-     <width>71</width>
-     <height>17</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Web service:</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="button_select_points">
    <property name="geometry">
     <rect>
      <x>40</x>
-     <y>80</y>
+     <y>170</y>
      <width>151</width>
      <height>41</height>
     </rect>
@@ -53,7 +30,7 @@
    <property name="geometry">
     <rect>
      <x>40</x>
-     <y>150</y>
+     <y>220</y>
      <width>151</width>
      <height>41</height>
     </rect>
@@ -61,6 +38,65 @@
    <property name="text">
     <string>Compute</string>
    </property>
+  </widget>
+  <widget class="QGroupBox" name="group_box_service">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>0</y>
+     <width>211</width>
+     <height>151</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string/>
+   </property>
+   <widget class="QLabel" name="label_web_service">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>30</y>
+      <width>161</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Web service</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="combo_box_web_service">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>50</y>
+      <width>181</width>
+      <height>31</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_transport_mode">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>90</y>
+      <width>161</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Transport mode</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="combo_box_transport_mode">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>110</y>
+      <width>181</width>
+      <height>31</height>
+     </rect>
+    </property>
+   </widget>
   </widget>
  </widget>
  <resources/>
