@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/multi_points_route" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
