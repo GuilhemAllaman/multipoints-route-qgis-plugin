@@ -1,67 +1,68 @@
-<ui version="4.0" >
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
  <class>MultiPointsRouteDialogBase</class>
- <widget class="QDialog" name="MultiPointsRouteDialogBase" >
-  <property name="geometry" >
+ <widget class="QDialog" name="MultiPointsRouteDialogBase">
+  <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>230</width>
+    <height>200</height>
    </rect>
   </property>
-  <property name="windowTitle" >
+  <property name="windowTitle">
    <string>Multiple Points Route</string>
   </property>
-  <widget class="QDialogButtonBox" name="button_box" >
-   <property name="geometry" >
+  <widget class="QComboBox" name="combo_box_web_service">
+   <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>240</y>
-     <width>341</width>
-     <height>32</height>
+     <x>10</x>
+     <y>40</y>
+     <width>211</width>
+     <height>25</height>
     </rect>
    </property>
-   <property name="orientation" >
-    <enum>Qt::Horizontal</enum>
+  </widget>
+  <widget class="QLabel" name="label_web_service">
+   <property name="geometry">
+    <rect>
+     <x>80</x>
+     <y>10</y>
+     <width>71</width>
+     <height>17</height>
+    </rect>
    </property>
-   <property name="standardButtons" >
-    <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+   <property name="text">
+    <string>Web service:</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="button_select_points">
+   <property name="geometry">
+    <rect>
+     <x>40</x>
+     <y>80</y>
+     <width>151</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Select Points</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="button_compute_route">
+   <property name="geometry">
+    <rect>
+     <x>40</x>
+     <y>150</y>
+     <width>151</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Compute</string>
    </property>
   </widget>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>button_box</sender>
-   <signal>accepted()</signal>
-   <receiver>MultiPointsRouteDialogBase</receiver>
-   <slot>accept()</slot>
-   <hints>
-    <hint type="source_label" >
-     <x>248</x>
-     <y>254</y>
-    </hint>
-    <hint type="destination_label" >
-     <x>157</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>button_box</sender>
-   <signal>rejected()</signal>
-   <receiver>MultiPointsRouteDialogBase</receiver>
-   <slot>reject()</slot>
-   <hints>
-    <hint type="source_label" >
-     <x>316</x>
-     <y>260</y>
-    </hint>
-    <hint type="destination_label" >
-     <x>286</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>

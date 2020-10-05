@@ -22,8 +22,11 @@
  ***************************************************************************/
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon, QColor
 from qgis.PyQt.QtWidgets import QAction
+
+from qgis.core import QgsWkbTypes, QgsPointXY, QgsMessageLog
+from qgis.gui import QgsMapToolEmitPoint, QgsRubberBand
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -31,6 +34,7 @@ from .resources import *
 from .multi_points_route_dialog import MultiPointsRouteDialog
 import os.path
 
+LOG_TAG = 'MultiPointsRoute'
 
 class MultiPointsRoute:
     """QGIS Plugin Implementation."""
@@ -179,22 +183,48 @@ class MultiPointsRoute:
                 action)
             self.iface.removeToolBarIcon(action)
 
+    def map_point_click(self, point: QgsPointXY):
+        self.middle_points.append(point)
+        self.point_rubber_band.addPoint(point)
+        self.line_rubber_band.addPoint(point)
+        QgsMessageLog.logMessage('New point added: ' + str(point), LOG_TAG)
+
+    def select_points(self):
+        # activate click on map
+        self.canvas.setMapTool(self.click_tool)
+        self.dlg.showMinimized()
+    
+    def compute_route(self):
+        # clear rubber bands
+        self.point_rubber_band.reset()
+        self.line_rubber_band.reset()
+        self.canvas.unsetMapTool(self.click_tool)
+        
+        # compute route between select points
+        QgsMessageLog.logMessage('Should now compute route between ' + str(len(self.middle_points)) + ' points', LOG_TAG)
+        for point in self.middle_points:
+            QgsMessageLog.logMessage('Point ' + str(point.x()) + ' x ' + str(point.y()), LOG_TAG)
 
     def run(self):
-        """Run method that performs all the real work"""
-
+        
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
             self.first_start = False
             self.dlg = MultiPointsRouteDialog()
 
+        self.middle_points = []
+        self.canvas = self.iface.mapCanvas()
+        self.click_tool = QgsMapToolEmitPoint(self.canvas)
+        self.click_tool.canvasClicked.connect(self.map_point_click)
+
+        self.point_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
+        self.point_rubber_band.setColor(QColor('#FF0000'))
+        self.line_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
+        self.line_rubber_band.setColor(QColor('#0000FF'))
+
+        self.dlg.button_select_points.clicked.connect(self.select_points)
+        self.dlg.button_compute_route.clicked.connect(self.compute_route)
+
         # show the dialog
         self.dlg.show()
-        # Run the dialog event loop
-        result = self.dlg.exec_()
-        # See if OK was pressed
-        if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-            pass
