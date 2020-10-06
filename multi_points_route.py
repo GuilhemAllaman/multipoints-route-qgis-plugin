@@ -25,8 +25,8 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon, QColor
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
 
-from qgis.core import QgsWkbTypes, QgsPointXY, QgsMessageLog
-from qgis.gui import QgsMapToolEmitPoint, QgsRubberBand
+from qgis.core import *
+from qgis.gui import *
 
 from .web.routeservice import *
 
@@ -84,7 +84,6 @@ class MultiPointsRoute:
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('MultiPointsRoute', message)
-
 
     def add_action(
         self,
@@ -179,6 +178,12 @@ class MultiPointsRoute:
             self.iface.removeToolBarIcon(action)
 
 
+    def transformer(self) -> QgsCoordinateTransform:
+        crs_project = self.canvas.mapSettings().destinationCrs()
+        crs_wgs84 = QgsCoordinateReferenceSystem(4326)
+        return QgsCoordinateTransform(crs_wgs84, crs_project, QgsProject.instance())
+
+
     def service_selected_change(self):
         self.service = self.service_factory.service(self.dlg.combo_box_web_service.currentText())
         self.dlg.combo_box_transport_mode.clear()
@@ -190,39 +195,52 @@ class MultiPointsRoute:
         self.dlg.showMinimized()
     
 
-    def map_point_click(self, p: QgsPointXY):
-        self.middle_points.append(p)
-        self.point_rubber_band.addPoint(p)
-        self.line_rubber_band.addPoint(p)
+    def map_point_click(self, point: QgsPointXY):
+
+        # transform points coordinates to WGS84
+        transformed = self.transformer().transform(point, QgsCoordinateTransform.ReverseTransform)
+
+        # add transformed point to list and rubberbands
+        self.middle_points.append(QgsPoint(transformed.x(), transformed.y()))
+        self.point_rubber_band.addPoint(point)
+        self.line_rubber_band.addPoint(point)
 
 
-    def compute_route(self):
-        
-        # compute route between select points
-        QgsMessageLog.logMessage('Should now compute route between ' + str(len(self.middle_points)) + ' points', LOG_TAG)
-        features = self.service.compute_route(self.middle_points, self.dlg.combo_box_transport_mode.currentText())
-        QgsMessageLog.logMessage('Features: ' + str(features), LOG_TAG)
-
-        layer = self.iface.addVectorLayer("LineString?crs=EPSG:4326", "Route", "memory")
-        layer.startEditing()
-        layer.addFeatures(features)
-        layer.commitChanges()
-        layer.updateExtents()        
-
+    def clear(self):
         # clear rubber bands
         self.point_rubber_band.reset()
         self.line_rubber_band.reset()
         self.canvas.unsetMapTool(self.click_tool)
+        self.middle_points.clear()
 
-    middle_points: [QgsPointXY]
+    def compute_route(self):
+        
+        # compute route between select points
+        features = self.service.compute_route(self.middle_points, self.dlg.combo_box_transport_mode.currentText())
+
+        layer = QgsVectorLayer('LineString?crs=EPSG:4326', 'Route Result', 'memory')
+        layer.startEditing()
+        layer.addFeatures(features)
+        layer.commitChanges()
+        layer.updateExtents()
+        layer.loadNamedStyle(self.plugin_dir + os.sep + 'styles' + os.sep + 'line-default.qml')
+        QgsProject.instance().addMapLayer(layer)
+
+        extent = self.transformer().transform(layer.extent(), QgsCoordinateTransform.ForwardTransform)
+        self.canvas.setExtent(extent)
+
+        self.clear()
+        
+
+    middle_points: [QgsPoint]
     service_factory: RouteServiceFactory
 
     def run(self):
         
         self.dlg = MultiPointsRouteDialog()
+        self.canvas = self.iface.mapCanvas()
         self.middle_points = []
         self.service_factory = RouteServiceFactory()
-        self.canvas = self.iface.mapCanvas()
 
         self.dlg.button_select_points.clicked.connect(self.select_points)
         self.dlg.button_compute_route.clicked.connect(self.compute_route)

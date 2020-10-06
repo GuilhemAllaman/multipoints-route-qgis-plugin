@@ -1,5 +1,5 @@
-from qgis.core import QgsPoint, QgsPointXY, QgsFeature, QgsGeometry, QgsMessageLog
-from abc import ABCMeta, abstractmethod
+from qgis.core import *
+from abc import *
 
 LOG_TAG = 'MultiPointsRoute'
 
@@ -10,7 +10,7 @@ class RouteService:
     pass
 
   @abstractmethod
-  def compute_route(self, points: [QgsPointXY], mode: str) -> [QgsFeature]:
+  def compute_route(self, points: [QgsPoint], mode: str) -> [QgsFeature]:
     pass
 
 class TestService(RouteService):
@@ -18,11 +18,9 @@ class TestService(RouteService):
   def modes(self) -> [str]:
     return ['transform']
 
-  def compute_route(self, points: [QgsPointXY], mode: str) -> [QgsFeature]:
+  def compute_route(self, points: [QgsPoint], mode: str) -> [QgsFeature]:
     f = QgsFeature()
-    # f.setGeometry(QgsGeometry.fromPolyline([QgsPoint(p.x(), p.y()) for p in points]))
-    # f.setGeometry(QgsGeometry.fromPolylineXY(points))
-    f.setGeometry(QgsGeometry.fromPolyline([QgsPoint(-5, 45), QgsPoint(5, 45)]))
+    f.setGeometry(QgsGeometry.fromPolyline(points))
     return [f]
 
 class ORSService(RouteService):
@@ -30,7 +28,7 @@ class ORSService(RouteService):
   def modes(self) -> [str]:
     return ['car', 'bike']
 
-  def compute_route(self, points: [QgsPointXY], mode: str) -> [QgsFeature]:
+  def compute_route(self, points: [QgsPoint], mode: str) -> [QgsFeature]:
     return []
 
 class CustomService(RouteService):
@@ -38,7 +36,7 @@ class CustomService(RouteService):
   def modes(self) -> [str]:
     return ['custom', 'car', 'bike']
 
-  def compute_route(self, points: [QgsPointXY], mode: str) -> [QgsFeature]:
+  def compute_route(self, points: [QgsPoint], mode: str) -> [QgsFeature]:
     return []
 
 class RouteServiceFactory:
