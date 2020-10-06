@@ -216,18 +216,12 @@ class MultiPointsRoute:
     def compute_route(self):
         
         # compute route between select points
-        features = self.service.compute_route(self.middle_points, self.dlg.combo_box_transport_mode.currentText())
-
-        layer = QgsVectorLayer('LineString?crs=EPSG:4326', 'Route Result', 'memory')
-        layer.startEditing()
-        layer.addFeatures(features)
-        layer.commitChanges()
-        layer.updateExtents()
+        layer = self.service.compute_route(self.middle_points, self.dlg.combo_box_transport_mode.currentText())
         layer.loadNamedStyle(self.plugin_dir + os.sep + 'styles' + os.sep + 'line-default.qml')
         QgsProject.instance().addMapLayer(layer)
 
-        extent = self.transformer().transform(layer.extent(), QgsCoordinateTransform.ForwardTransform)
-        self.canvas.setExtent(extent)
+        """ extent = self.transformer().transform(layer.extent(), QgsCoordinateTransform.ForwardTransform)
+        self.canvas.setExtent(extent) """
 
         self.clear()
         
