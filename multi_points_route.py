@@ -40,7 +40,6 @@ import os.path
 LOG_TAG = 'MultiPointsRoute'
 
 class MultiPointsRoute:
-    """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
         """Constructor.
@@ -177,24 +176,33 @@ class MultiPointsRoute:
                 action)
             self.iface.removeToolBarIcon(action)
 
-
+    # returns a coordinates transformer using Qgis project's coordinates
     def transformer(self) -> QgsCoordinateTransform:
         crs_project = self.canvas.mapSettings().destinationCrs()
         crs_wgs84 = QgsCoordinateReferenceSystem(4326)
         return QgsCoordinateTransform(crs_wgs84, crs_project, QgsProject.instance())
 
 
+    # when service combobox changes
     def service_selected_change(self):
         self.service = self.service_factory.service(self.dlg.combo_box_web_service.currentText())
         self.dlg.combo_box_transport_mode.clear()
         self.dlg.combo_box_transport_mode.addItems(self.service.modes())
 
 
+    # when select points button is clicked
     def select_points(self):
         self.canvas.setMapTool(self.click_tool)
         self.dlg.showMinimized()
     
 
+    # when clear selection button is clicked
+    def clear_selection(self):
+        self.clear()
+        self.dlg.label_points_count.setText('{} points selected'.format(len(self.middle_points)))
+    
+
+    # when a point on the map is clicked
     def map_point_click(self, point: QgsPointXY):
 
         # transform points coordinates to WGS84
@@ -204,53 +212,41 @@ class MultiPointsRoute:
         self.middle_points.append(QgsPoint(transformed.x(), transformed.y()))
         self.point_rubber_band.addPoint(point)
         self.line_rubber_band.addPoint(point)
+        self.dlg.label_points_count.setText('{} points selected'.format(len(self.middle_points)))
 
-
+    # clear and remove elements
     def clear(self):
-        # clear rubber bands
-        self.point_rubber_band.reset()
-        self.line_rubber_band.reset()
-        self.canvas.unsetMapTool(self.click_tool)
-        self.middle_points.clear()
+        if self.dlg:
+            self.point_rubber_band.reset()
+            self.line_rubber_band.reset()
+            self.canvas.unsetMapTool(self.click_tool)
+            self.middle_points.clear()
 
+    # compute a route between selected points using a webservice
     def compute_route(self):
-        
-        # compute route between select points
         layer = self.service.compute_route(self.middle_points, self.dlg.combo_box_transport_mode.currentText())
         layer.loadNamedStyle(self.plugin_dir + os.sep + 'styles' + os.sep + 'line-default.qml')
         QgsProject.instance().addMapLayer(layer)
 
-        """ extent = self.transformer().transform(layer.extent(), QgsCoordinateTransform.ForwardTransform)
-        self.canvas.setExtent(extent) """
-
-        self.clear()
-        
-
-    middle_points: [QgsPoint]
-    service_factory: RouteServiceFactory
 
     def run(self):
         
-        self.dlg = MultiPointsRouteDialog()
-        self.canvas = self.iface.mapCanvas()
         self.middle_points = []
         self.service_factory = RouteServiceFactory()
-
-        self.dlg.button_select_points.clicked.connect(self.select_points)
-        self.dlg.button_compute_route.clicked.connect(self.compute_route)
-
-        self.dlg.combo_box_web_service.clear()
-        self.dlg.combo_box_web_service.addItems(self.service_factory.available_services())
-        self.dlg.combo_box_web_service.currentIndexChanged.connect(self.service_selected_change)
-        self.service_selected_change()
-
+        self.canvas = self.iface.mapCanvas()
         self.point_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
         self.point_rubber_band.setColor(QColor('#FF0000'))
         self.line_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
         self.line_rubber_band.setColor(QColor('#0000FF'))
-
         self.click_tool = QgsMapToolEmitPoint(self.canvas)
         self.click_tool.canvasClicked.connect(self.map_point_click)
-        
-        # show the dialog
+        self.dlg = MultiPointsRouteDialog()
+
+        self.dlg.button_select_points.clicked.connect(self.select_points)
+        self.dlg.button_compute_route.clicked.connect(self.compute_route)
+        self.dlg.button_clear_selection.clicked.connect(self.clear_selection)
+        self.dlg.combo_box_web_service.clear()
+        self.dlg.combo_box_web_service.addItems(self.service_factory.available_services())
+        self.dlg.combo_box_web_service.currentIndexChanged.connect(self.service_selected_change)
+        self.service_selected_change()
         self.dlg.show()

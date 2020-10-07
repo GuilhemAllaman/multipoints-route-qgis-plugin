@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>231</width>
-    <height>274</height>
+    <width>270</width>
+    <height>298</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,9 +16,9 @@
   <widget class="QPushButton" name="button_select_points">
    <property name="geometry">
     <rect>
-     <x>40</x>
+     <x>20</x>
      <y>170</y>
-     <width>151</width>
+     <width>111</width>
      <height>41</height>
     </rect>
    </property>
@@ -29,14 +29,14 @@
   <widget class="QPushButton" name="button_compute_route">
    <property name="geometry">
     <rect>
-     <x>40</x>
-     <y>220</y>
-     <width>151</width>
+     <x>20</x>
+     <y>250</y>
+     <width>231</width>
      <height>41</height>
     </rect>
    </property>
    <property name="text">
-    <string>Compute</string>
+    <string>GO</string>
    </property>
   </widget>
   <widget class="QGroupBox" name="group_box_service">
@@ -44,7 +44,7 @@
     <rect>
      <x>10</x>
      <y>0</y>
-     <width>211</width>
+     <width>251</width>
      <height>151</height>
     </rect>
    </property>
@@ -56,7 +56,7 @@
      <rect>
       <x>20</x>
       <y>30</y>
-      <width>161</width>
+      <width>221</width>
       <height>17</height>
      </rect>
     </property>
@@ -69,7 +69,7 @@
      <rect>
       <x>10</x>
       <y>50</y>
-      <width>181</width>
+      <width>231</width>
       <height>31</height>
      </rect>
     </property>
@@ -79,7 +79,7 @@
      <rect>
       <x>20</x>
       <y>90</y>
-      <width>161</width>
+      <width>221</width>
       <height>17</height>
      </rect>
     </property>
@@ -92,11 +92,37 @@
      <rect>
       <x>10</x>
       <y>110</y>
-      <width>181</width>
+      <width>231</width>
       <height>31</height>
      </rect>
     </property>
    </widget>
+  </widget>
+  <widget class="QPushButton" name="button_clear_selection">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>170</y>
+     <width>111</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Clear Selection</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_points_count">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>220</y>
+     <width>131</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>0 points selected</string>
+   </property>
   </widget>
  </widget>
  <resources/>
