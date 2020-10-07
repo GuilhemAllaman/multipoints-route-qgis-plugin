@@ -1,16 +1,20 @@
-from qgis.core import *
-from abc import *
 import requests
+from abc import *
+from qgis.core import *
+from qgis.PyQt.QtCore import QVariant
 
 LOG_TAG = 'MultiPointsRoute'
 ORS_KEY = '5b3ce3597851110001cf6248825666083b1e45f79ea80b6d26f8b0a2'
 LAYER_NAME = 'Route Result'
+LAYER_ATTRIBUTES = [QgsField('distance', QVariant.Double), QgsField('duration',  QVariant.Double)]
 
 def route_result_layer_from_features(features: [QgsFeature]) -> QgsVectorLayer:
+
   layer = QgsVectorLayer('LineString?crs=EPSG:4326', LAYER_NAME, 'memory')
-  layer.startEditing()
-  layer.addFeatures(features)
-  layer.commitChanges()
+  data_provider = layer.dataProvider()
+  data_provider.addAttributes(LAYER_ATTRIBUTES)
+  layer.updateFields()
+  data_provider.addFeatures(features)
   layer.updateExtents()
   return layer
 
@@ -41,45 +45,32 @@ class ORSService(RouteService):
 
   def compute_route(self, points: [QgsPoint], mode: str) -> QgsVectorLayer:
     url = 'https://api.openrouteservice.org/v2/directions/{}/geojson'.format(mode)
-    QgsMessageLog.logMessage(url, LOG_TAG, Qgis.Info)
     headers = {
       'Accept': 'application/json, text/plain, */*',
       'Accept-Encoding': 'gzip, deflate, br',
-      'Authorization': '5b3ce3597851110001cf6248825666083b1e45f79ea80b6d26f8b0a2',
+      'Authorization': ORS_KEY,
       'Content-Type':	'application/json',
-      'User-Agent': 'Mozilla'
+      'User-Agent': 'QGIS'
     }
     payload = {'coordinates': [[p.x(), p.y()] for p in points]}
-    QgsMessageLog.logMessage(str(payload), LOG_TAG, Qgis.Info)
-    req = requests.post(url, headers=headers, data=payload)
-    QgsMessageLog.logMessage(req.text, LOG_TAG, Qgis.Info)
-    return route_result_layer_from_features([])
 
-class ORSBasicService(RouteService):
+    req = requests.post(url, headers=headers, json=payload)
+    feature = req.json()['features'][0]
+    distance = feature['properties']['summary']['distance']
+    duration = feature['properties']['summary']['duration']
+    res_points = [QgsPoint(p[0], p[1]) for p in feature['geometry']['coordinates']]
 
-  def modes(self) -> [str]:
-    return ['driving-car', 'cycling-regular', 'foot-walking']
-
-  def compute_route(self, points: [QgsPoint], mode: str) -> QgsVectorLayer:
-    start = points[0]
-    end = points[-1]
-    url = 'https://api.openrouteservice.org/v2/directions/{}?api_key={}&start={},{}&end={},{}'.format(mode, ORS_KEY, start.x(), start.y(), end.x(), end.y())
-    headers = {
-      'Accept': 'application/json, text/plain, */*',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Content-Type':	'application/json',
-      'User-Agent': 'Mozilla'
-    }
-    request = requests.get(url, headers=headers)
-    res_points = [QgsPoint(a[0], a[1]) for a in request.json()['features'][0]['geometry']['coordinates']]
     feature = QgsFeature()
     feature.setGeometry(QgsGeometry.fromPolyline(res_points))
+    feature.setAttributes([distance, duration])
+
     return route_result_layer_from_features([feature])
+
 
 class CustomService(RouteService):
 
   def modes(self) -> [str]:
-    return ['custom', 'car', 'bike']
+    return ['driving', 'cycling', 'walking']
 
   def compute_route(self, points: [QgsPoint], mode: str) -> QgsVectorLayer:
     return route_result_layer_from_features([])
@@ -87,8 +78,7 @@ class CustomService(RouteService):
 class RouteServiceFactory:
 
   services = {
-    'ORS basic (no middle points)': ORSBasicService(),
-    'ORS complex (with middle points)': ORSService(),
+    'ORS': ORSService(),
     'Custom': CustomService(),
     'test': TestService()
   }
