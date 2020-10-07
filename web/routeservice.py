@@ -8,9 +8,12 @@ ORS_KEY = '5b3ce3597851110001cf6248825666083b1e45f79ea80b6d26f8b0a2'
 LAYER_NAME = 'Route Result'
 LAYER_ATTRIBUTES = [QgsField('distance', QVariant.Double), QgsField('duration',  QVariant.Double)]
 
-def route_result_layer_from_features(features: [QgsFeature]) -> QgsVectorLayer:
+def layer_name(mode: str, service: str) -> str:
+  return 'Route result -{}- (service: {})'.format(mode, service)
 
-  layer = QgsVectorLayer('LineString?crs=EPSG:4326', LAYER_NAME, 'memory')
+def route_result_layer_from_features(features: [QgsFeature], mode: str, service: str) -> QgsVectorLayer:
+
+  layer = QgsVectorLayer('LineString?crs=EPSG:4326', layer_name(mode, service), 'memory')
   data_provider = layer.dataProvider()
   data_provider.addAttributes(LAYER_ATTRIBUTES)
   layer.updateFields()
@@ -36,7 +39,7 @@ class TestService(RouteService):
   def compute_route(self, points: [QgsPoint], mode: str) -> QgsVectorLayer:
     f = QgsFeature()
     f.setGeometry(QgsGeometry.fromPolyline(points))
-    return route_result_layer_from_features([f])
+    return route_result_layer_from_features([f], mode, 'TEST')
 
 class ORSService(RouteService):
 
@@ -64,7 +67,7 @@ class ORSService(RouteService):
     feature.setGeometry(QgsGeometry.fromPolyline(res_points))
     feature.setAttributes([distance, duration])
 
-    return route_result_layer_from_features([feature])
+    return route_result_layer_from_features([feature], mode, 'ORS')
 
 
 class CustomService(RouteService):
@@ -73,7 +76,7 @@ class CustomService(RouteService):
     return ['driving', 'cycling', 'walking']
 
   def compute_route(self, points: [QgsPoint], mode: str) -> QgsVectorLayer:
-    return route_result_layer_from_features([])
+    return route_result_layer_from_features([], mode, 'CUSTOM')
 
 class RouteServiceFactory:
 
