@@ -94,7 +94,7 @@ class OrsService(RouteService):
 class RouteServiceFactory:
 
   services = {
-    'MPR local': MultiPointsRouteService('http://localhost:5000'),
+    # 'MPR local debug': MultiPointsRouteService('http://localhost:5000'),
     'MPR': MultiPointsRouteService('https://mpr.guilhemallaman.net'),
     'ORS': OrsService()
   }
