@@ -28,7 +28,7 @@ from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.core import *
 from qgis.gui import *
 
-from .web.routeservice import *
+from .routeservice import RouteServiceFactory, RouteService
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -123,9 +123,7 @@ class MultiPointsRoute:
             self.toolbar.addAction(action)
 
         if add_to_menu:
-            self.iface.addPluginToMenu(
-                self.menu,
-                action)
+            self.iface.addPluginToMenu(self.menu, action)
 
         self.actions.append(action)
 
@@ -134,18 +132,13 @@ class MultiPointsRoute:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         icon_path = ':/plugins/multi_points_route/icon.png'
-        self.add_action(
-            icon_path,
-            text=self.tr(u'Multiple Points Route'),
-            callback=self.run,
-            parent=self.iface.mainWindow())
+        self.add_action(icon_path, text=self.tr(PLUGIN_NAME),
+            callback=self.run, parent=self.iface.mainWindow())
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
-            self.iface.removePluginMenu(
-                self.tr(u'&Multiple Points Route'),
-                action)
+            self.iface.removePluginMenu(self.tr(PLUGIN_NAME),action)
             self.iface.removeToolBarIcon(action)
         del self.toolbar
 
@@ -193,18 +186,25 @@ class MultiPointsRoute:
 
     # clear and remove elements
     def clear(self):
-        self.point_rubber_band.reset()
-        del self.point_rubber_band
-        self.line_rubber_band.reset()
-        del self.line_rubber_band
+        if self.point_rubber_band:
+            self.point_rubber_band.reset()
+        if self.line_rubber_band:
+            self.line_rubber_band.reset()
         self.canvas.unsetMapTool(self.click_tool)
         self.middle_points.clear()
 
     # compute a route between selected points using a webservice
     def compute_route(self):
-        layer = self.service.compute_route(self.middle_points, self.dlg.combo_box_transport_mode.currentText())
-        layer.loadNamedStyle(self.plugin_dir + os.sep + 'styles' + os.sep + 'line-default.qml')
-        QgsProject.instance().addMapLayer(layer)
+        try:
+            layer = self.service.compute_route(self.middle_points, self.dlg.combo_box_transport_mode.currentText())
+            layer.loadNamedStyle(self.plugin_dir + os.sep + 'styles' + os.sep + 'line-default.qml')
+            QgsProject.instance().addMapLayer(layer)
+        except:
+            msg = QMessageBox()
+            msg.setWindowTitle("Error")
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText('Error while computing route with webservice "{}"'.format(self.dlg.combo_box_web_service.currentText()))
+            msg.exec_()            
 
     # run plugin
     def run(self):
