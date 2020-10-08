@@ -6,14 +6,19 @@ from qgis.PyQt.QtCore import QVariant
 LOG_TAG = 'MultiPointsRoute'
 ORS_KEY = '5b3ce3597851110001cf6248825666083b1e45f79ea80b6d26f8b0a2'
 
-def layer_name(mode: str, distance: float, duration: float) -> str:
-  return 'Route  -{}-  ({:.2f} km, {:.0f} min)'.format(mode, distance/1000, duration/60)
+def layer_name(service: str, mode: str, distance: float, duration: float) -> str:
+  return 'Route {}  -{}-  ({:.2f} km, {:.0f} min)'.format(service, mode, distance/1000, duration/60)
 
-def route_result_layer_from_features(features: [QgsFeature], mode: str, distance: float, duration: float) -> QgsVectorLayer:
+def route_result_layer_from_features(features: [QgsFeature], service: str, mode: str, distance: float, duration: float) -> QgsVectorLayer:
 
-  layer = QgsVectorLayer('LineString?crs=EPSG:4326', layer_name(mode, distance, duration), 'memory')
+  layer = QgsVectorLayer('LineString?crs=EPSG:4326', layer_name(service, mode, distance, duration), 'memory')
   data_provider = layer.dataProvider()
-  data_provider.addAttributes([QgsField('distance', QVariant.Double), QgsField('duration',  QVariant.Double)])
+  data_provider.addAttributes([
+    QgsField('distance_m', QVariant.Double),
+    QgsField('duration_s',  QVariant.Double),
+    QgsField('instruction', QVariant.String),
+    QgsField('name', QVariant.String)
+  ])
   layer.updateFields()
   data_provider.addFeatures(features)
   layer.updateExtents()
@@ -44,15 +49,18 @@ class MultiPointsRouteService(RouteService):
     req = requests.post(url, json=payload)
 
     route = req.json()['route']
-    distance = route['distance']
-    duration = route['duration']
-    res_points = [QgsPoint(p[0], p[1]) for p in route['points']]
+    route_distance, route_duration = route['distance'], route['duration']
 
-    feature = QgsFeature()
-    feature.setGeometry(QgsGeometry.fromPolyline(res_points))
-    feature.setAttributes([distance, duration])
+    features = []
+    for segment in route['segments']:
+      distance, duration, instruction, name = segment['dist'], segment['time'], segment['instr'], segment['name']
+      seg_points = [QgsPoint(p[0], p[1]) for p in segment['points']]
+      feature = QgsFeature()
+      feature.setGeometry(QgsGeometry.fromPolyline(seg_points))
+      feature.setAttributes([distance, duration, instruction, name])
+      features.append(feature) 
 
-    return route_result_layer_from_features([feature], mode, distance, duration)
+    return route_result_layer_from_features(features, 'MPR', mode, route_distance, route_duration)
 
 class OrsService(RouteService):
 
@@ -80,7 +88,7 @@ class OrsService(RouteService):
     feature.setGeometry(QgsGeometry.fromPolyline(res_points))
     feature.setAttributes([distance, duration])
 
-    return route_result_layer_from_features([feature], mode, distance, duration)
+    return route_result_layer_from_features([feature], 'ORS', mode, distance, duration)
 
 
 class RouteServiceFactory:
