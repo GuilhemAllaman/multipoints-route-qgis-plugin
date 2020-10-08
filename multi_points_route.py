@@ -37,28 +37,19 @@ from .resources import *
 from .multi_points_route_dialog import MultiPointsRouteDialog
 import os.path
 
-LOG_TAG = 'MultiPointsRoute'
+PLUGIN_NAME = 'Multi Points Route'
 
 class MultiPointsRoute:
 
+    # constructor
     def __init__(self, iface):
-        """Constructor.
-
-        :param iface: An interface instance that will be passed to this class
-            which provides the hook by which you can manipulate the QGIS
-            application at run time.
-        :type iface: QgsInterface
-        """
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
-        locale_path = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'MultiPointsRoute_{}.qm'.format(locale))
+        locale_path = os.path.join(self.plugin_dir, 'i18n', 'MultiPointsRoute_{}.qm'.format(locale))
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -67,34 +58,16 @@ class MultiPointsRoute:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&Multiple Points Route')
+        self.menu = self.tr(PLUGIN_NAME)
+        self.toolbar = self.iface.addToolBar(PLUGIN_NAME)
+        self.toolbar.setObjectName(PLUGIN_NAME)
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
-        """Get the translation for a string using Qt translation API.
-
-        We implement this ourselves since we do not inherit QObject.
-
-        :param message: String for translation.
-        :type message: str, QString
-
-        :returns: Translated version of message.
-        :rtype: QString
-        """
-        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('MultiPointsRoute', message)
 
-    def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+    def add_action(self, icon_path, text, callback, enabled_flag=True,
+        add_to_menu=True, add_to_toolbar=True, status_tip=None, whats_this=None, parent=None):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -146,8 +119,8 @@ class MultiPointsRoute:
             action.setWhatsThis(whats_this)
 
         if add_to_toolbar:
-            # Adds plugin icon to Plugins toolbar
             self.iface.addToolBarIcon(action)
+            self.toolbar.addAction(action)
 
         if add_to_menu:
             self.iface.addPluginToMenu(
@@ -160,7 +133,6 @@ class MultiPointsRoute:
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
-
         icon_path = ':/plugins/multi_points_route/icon.png'
         self.add_action(
             icon_path,
@@ -175,6 +147,7 @@ class MultiPointsRoute:
                 self.tr(u'&Multiple Points Route'),
                 action)
             self.iface.removeToolBarIcon(action)
+        del self.toolbar
 
     # returns a coordinates transformer using Qgis project's coordinates
     def transformer(self) -> QgsCoordinateTransform:
@@ -216,11 +189,10 @@ class MultiPointsRoute:
 
     # clear and remove elements
     def clear(self):
-        if self.dlg:
-            self.point_rubber_band.reset()
-            self.line_rubber_band.reset()
-            self.canvas.unsetMapTool(self.click_tool)
-            self.middle_points.clear()
+        self.point_rubber_band.reset()
+        self.line_rubber_band.reset()
+        self.canvas.unsetMapTool(self.click_tool)
+        self.middle_points.clear()
 
     # compute a route between selected points using a webservice
     def compute_route(self):
@@ -228,7 +200,7 @@ class MultiPointsRoute:
         layer.loadNamedStyle(self.plugin_dir + os.sep + 'styles' + os.sep + 'line-default.qml')
         QgsProject.instance().addMapLayer(layer)
 
-
+    # run plugin
     def run(self):
         
         self.middle_points = []
@@ -249,4 +221,5 @@ class MultiPointsRoute:
         self.dlg.combo_box_web_service.addItems(self.service_factory.available_services())
         self.dlg.combo_box_web_service.currentIndexChanged.connect(self.service_selected_change)
         self.service_selected_change()
+        self.dlg.finished.connect(self.clear)
         self.dlg.show()
