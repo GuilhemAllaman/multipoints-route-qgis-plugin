@@ -165,6 +165,10 @@ class MultiPointsRoute:
 
     # when select points button is clicked
     def select_points(self):
+        self.point_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
+        self.point_rubber_band.setColor(QColor('#FF0000'))
+        self.line_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
+        self.line_rubber_band.setColor(QColor('#0000FF'))
         self.canvas.setMapTool(self.click_tool)
         self.dlg.showMinimized()
     
@@ -190,7 +194,9 @@ class MultiPointsRoute:
     # clear and remove elements
     def clear(self):
         self.point_rubber_band.reset()
+        del self.point_rubber_band
         self.line_rubber_band.reset()
+        del self.line_rubber_band
         self.canvas.unsetMapTool(self.click_tool)
         self.middle_points.clear()
 
@@ -206,10 +212,6 @@ class MultiPointsRoute:
         self.middle_points = []
         self.service_factory = RouteServiceFactory()
         self.canvas = self.iface.mapCanvas()
-        self.point_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
-        self.point_rubber_band.setColor(QColor('#FF0000'))
-        self.line_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
-        self.line_rubber_band.setColor(QColor('#0000FF'))
         self.click_tool = QgsMapToolEmitPoint(self.canvas)
         self.click_tool.canvasClicked.connect(self.map_point_click)
         self.dlg = MultiPointsRouteDialog()
