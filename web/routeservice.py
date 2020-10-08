@@ -5,17 +5,15 @@ from qgis.PyQt.QtCore import QVariant
 
 LOG_TAG = 'MultiPointsRoute'
 ORS_KEY = '5b3ce3597851110001cf6248825666083b1e45f79ea80b6d26f8b0a2'
-LAYER_NAME = 'Route Result'
-LAYER_ATTRIBUTES = [QgsField('distance', QVariant.Double), QgsField('duration',  QVariant.Double)]
 
-def layer_name(mode: str, service: str) -> str:
-  return 'Route result -{}- (service: {})'.format(mode, service)
+def layer_name(mode: str, distance: float, duration: float) -> str:
+  return 'Route  -{}-  ({:.2f} km, {:.0f} min)'.format(mode, distance/1000, duration/60)
 
-def route_result_layer_from_features(features: [QgsFeature], mode: str, service: str) -> QgsVectorLayer:
+def route_result_layer_from_features(features: [QgsFeature], mode: str, distance: float, duration: float) -> QgsVectorLayer:
 
-  layer = QgsVectorLayer('LineString?crs=EPSG:4326', layer_name(mode, service), 'memory')
+  layer = QgsVectorLayer('LineString?crs=EPSG:4326', layer_name(mode, distance, duration), 'memory')
   data_provider = layer.dataProvider()
-  data_provider.addAttributes(LAYER_ATTRIBUTES)
+  data_provider.addAttributes([QgsField('distance', QVariant.Double), QgsField('duration',  QVariant.Double)])
   layer.updateFields()
   data_provider.addFeatures(features)
   layer.updateExtents()
@@ -31,20 +29,32 @@ class RouteService:
   def compute_route(self, points: [QgsPoint], mode: str) -> QgsVectorLayer:
     pass
 
-class TestService(RouteService):
-  
+class MultiPointsRouteService(RouteService):
+
   def modes(self) -> [str]:
-    return ['transform']
+    return ['cycling', 'driving', 'walking']
 
   def compute_route(self, points: [QgsPoint], mode: str) -> QgsVectorLayer:
-    f = QgsFeature()
-    f.setGeometry(QgsGeometry.fromPolyline(points))
-    return route_result_layer_from_features([f], mode, 'TEST')
 
-class ORSService(RouteService):
+    url = 'https://mpr.guilhemallaman.net/route/{}'.format(mode)
+    payload = {'points': [[p.x(), p.y()] for p in points]}
+    req = requests.post(url, json=payload)
+
+    route = req.json()['route']
+    distance = route['distance']
+    duration = route['duration']
+    res_points = [QgsPoint(p[0], p[1]) for p in route['points']]
+
+    feature = QgsFeature()
+    feature.setGeometry(QgsGeometry.fromPolyline(res_points))
+    feature.setAttributes([distance, duration])
+
+    return route_result_layer_from_features([feature], mode, distance, duration)
+
+class OrsService(RouteService):
 
   def modes(self) -> [str]:
-    return ['driving-car', 'cycling-regular', 'foot-walking']
+    return ['cycling-regular', 'driving-car', 'foot-walking']
 
   def compute_route(self, points: [QgsPoint], mode: str) -> QgsVectorLayer:
     url = 'https://api.openrouteservice.org/v2/directions/{}/geojson'.format(mode)
@@ -56,8 +66,8 @@ class ORSService(RouteService):
       'User-Agent': 'QGIS'
     }
     payload = {'coordinates': [[p.x(), p.y()] for p in points]}
-
     req = requests.post(url, headers=headers, json=payload)
+
     feature = req.json()['features'][0]
     distance = feature['properties']['summary']['distance']
     duration = feature['properties']['summary']['duration']
@@ -67,23 +77,14 @@ class ORSService(RouteService):
     feature.setGeometry(QgsGeometry.fromPolyline(res_points))
     feature.setAttributes([distance, duration])
 
-    return route_result_layer_from_features([feature], mode, 'ORS')
+    return route_result_layer_from_features([feature], mode, distance, duration)
 
-
-class CustomService(RouteService):
-
-  def modes(self) -> [str]:
-    return ['driving', 'cycling', 'walking']
-
-  def compute_route(self, points: [QgsPoint], mode: str) -> QgsVectorLayer:
-    return route_result_layer_from_features([], mode, 'CUSTOM')
 
 class RouteServiceFactory:
 
   services = {
-    'ORS': ORSService(),
-    'Custom': CustomService(),
-    'test': TestService()
+    'MPR': MultiPointsRouteService(),
+    'ORS': OrsService()
   }
 
   def available_services(self) -> [str]:
