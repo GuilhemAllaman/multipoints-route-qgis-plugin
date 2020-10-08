@@ -28,7 +28,7 @@ from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.core import *
 from qgis.gui import *
 
-from .routeservice import RouteServiceFactory, RouteService
+from .route_service import RouteServiceFactory, RouteService
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -155,13 +155,17 @@ class MultiPointsRoute:
         self.dlg.combo_box_transport_mode.clear()
         self.dlg.combo_box_transport_mode.addItems(self.service.modes())
 
-
-    # when select points button is clicked
-    def select_points(self):
+    # creates or reassign rubber bands
+    def init_rubber_bands(self):
         self.point_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
         self.point_rubber_band.setColor(QColor('#FF0000'))
         self.line_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
         self.line_rubber_band.setColor(QColor('#0000FF'))
+
+
+    # when select points button is clicked
+    def select_points(self):
+        self.init_rubber_bands()
         self.canvas.setMapTool(self.click_tool)
         self.dlg.showMinimized()
     
@@ -212,6 +216,7 @@ class MultiPointsRoute:
         self.middle_points = []
         self.service_factory = RouteServiceFactory()
         self.canvas = self.iface.mapCanvas()
+        self.init_rubber_bands()
         self.click_tool = QgsMapToolEmitPoint(self.canvas)
         self.click_tool.canvasClicked.connect(self.map_point_click)
         self.dlg = MultiPointsRouteDialog()
